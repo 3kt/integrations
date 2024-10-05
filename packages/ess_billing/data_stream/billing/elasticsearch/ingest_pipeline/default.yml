@@ -1,0 +1,88 @@
+description: "Ingest pipeline for ECS compliance"
+processors:
+  - set:
+      field: ecs.version
+      tag: set_ecs_version
+      value: "8.11.0"
+  - set:
+      field: event.kind
+      tag: set_event_kind
+      value: "metric"
+  - rename:
+      field: "@timestamp"
+      target_field: event.created
+  - date:
+      field: ess.billing.from
+      tag: date_based_on_from_field
+      formats:
+        - ISO8601
+
+#TODO
+  - set:
+      field: cloud.provider
+      value: "ess"
+  - rename:
+      field: "input.type"
+      target_field: "ess.billing.input.type"
+      ignore_failure: true
+  - rename:
+      field: "host.name"
+      target_field: "host.name"
+      ignore_failure: true
+  - rename:
+      field: "agent.id"
+      target_field: "agent.id"
+      ignore_failure: true
+  - rename:
+      field: "agent.name"
+      target_field: "agent.name"
+      ignore_failure: true
+  - rename:
+      field: "agent.type"
+      target_field: "agent.type"
+      ignore_failure: true
+  - rename:
+      field: "agent.version"
+      target_field: "agent.version"
+      ignore_failure: true
+  - rename:
+      field: "agent.ephemeral_id"
+      target_field: "agent.ephemeral_id"
+      ignore_failure: true
+  - rename:
+      field: "ecs.version"
+      target_field: "ecs.version"
+      ignore_failure: true
+  - date:
+      field: "event.created"
+      target_field: "@timestamp"
+      formats:
+        - ISO8601
+  - geoip:
+      field: "host.name"
+      target_field: "source.geo"
+      ignore_missing: true
+  - geoip:
+      database_file: GeoLite2-ASN.mmdb
+      field: "host.name"
+      target_field: "source.as"
+      properties:
+        - asn
+        - organization_name
+      ignore_missing: true
+  - rename:
+      field: "source.as.asn"
+      target_field: "source.as.number"
+      ignore_missing: true
+  - rename:
+      field: "source.as.organization_name"
+      target_field: "source.as.organization.name"
+      ignore_missing: true
+
+on_failure:
+  - set:
+      field: event.kind
+      value: "pipeline_error"
+  - append:
+      field: error.message
+      value: "{{{ _ingest.on_failure_message }}}"
